@@ -31,6 +31,18 @@
   (assert (typep value type))
   (write-object value stream))
 
+(defgeneric generic-read-byte (stream)
+  (:documentation "Read a byte from a stream."))
+
+(defgeneric generic-write-byte (value stream)
+  (:documentation "Write a byte to a stream."))
+
+(defmethod generic-read-byte ((stream stream))
+  (read-byte stream))
+
+(defmethod generic-write-byte (value (stream stream))
+  (write-byte value stream))
+
 
 ;;; Binary types
 
@@ -38,10 +50,18 @@
   (with-gensyms (type stream value)
   `(eval-when (:compile-toplevel :load-toplevel :execute)
     (defmethod read-value ((,type (eql ',name)) ,stream &key ,@args)
-      (declare (ignorable ,@args))
+      (declare (ignorable ,@(mapcar #'(lambda (arg)
+					(if (consp arg)
+					    (car arg)
+					    arg))
+				    args)))
       ,(type-reader-body spec stream))
     (defmethod write-value ((,type (eql ',name)) ,stream ,value &key ,@args)
-      (declare (ignorable ,@args))
+      (declare (ignorable ,@(mapcar #'(lambda (arg)
+					(if (consp arg)
+					    (car arg)
+					    arg))
+				    args)))
       ,(type-writer-body spec stream value)))))
 
 (defun type-reader-body (spec stream)
@@ -63,18 +83,31 @@
          `(let ((,out ,stream) (,v ,value)) ,@body)))))
 
 ;;; Enumerations
+(define-condition no-symbol-for-value-enum (error)
+  ((value :initarg :value :reader value)))
+
+(defun return-unknown-value (c)
+  (let ((restart (find-restart 'return-unknown-value)))
+    (when restart (invoke-restart restart))))
 
 (defmacro define-enumeration (name (type) &rest mapping)
   (let ((mapping (normalize-mapping mapping)))
     (with-gensyms (in out value)
-      `(define-binary-type ,name ()
+      `(define-binary-type ,name (type)
 	 (:reader (,in)
-		  (let ((,value (read-value ',type ,in)))
+		  (let ((,value (eval (type->read-value type ,in))))
 		    (case ,value
 		      ,@(loop for (symbol number) in mapping collect `(,number ',symbol))
-		      (otherwise (error "No ~a for value: ~a" ',name ,value)))))
+		      (otherwise
+                       (type->read-value type ,in)
+		       ;; (format t "Unknown enum, type=~A, value=~A~%"
+		       ;;         (type->read-value type ,in)
+		       ;;         ,value)
+		       (restart-case (error 'no-symbol-for-value-enum :value ,value)
+				   (return-unknown-value () ,value))))))
 	 (:writer (,out ,value)
-		  (write-value ',type ,out
+		  ;; TODO verify this
+		  (write-value type ,out
 			       (case ,value
 				 ,@(loop for (symbol number) in mapping collect `(,symbol ,number))
 				 (otherwise (error "~a not a legal ~a" ,value ',name)))))))))
@@ -135,18 +168,30 @@
 ;; it's up to the author of the tagged class to make the two mappings
 ;; symmetric.
 
+;; Update 2013-01-24 <npatrick04@gmail.com> -- This has been updated
+;; to allow tagged binary classes to inherit from tagged binary
+;; classes.  The update corrects for data structures that require
+;; multiple levels of dispatch.  
+
 (defmacro define-tagged-binary-class (&whole whole name (&rest superclasses) slots &rest options)
-  (with-gensyms (typevar objectvar streamvar)
-    `(define-generic-binary-class ,name ,superclasses ,slots
-      (defmethod read-value ((,typevar (eql ',name)) ,streamvar &key)
-        (let* ,(mapcar #'(lambda (x) (slot->binding x streamvar)) slots)
-          (let ((,objectvar
-                 (make-instance 
-                  ,@(or (cdr (assoc :dispatch options))
-                        (error "No :dispatch form found in ~s" whole))
-                  ,@(mapcan #'slot->keyword-arg slots))))
-            (read-object ,objectvar ,streamvar)
-            ,objectvar))))))
+  (with-gensyms (typevar objectvar streamvar child)
+    `(define-generic-binary-class
+         ,name ,superclasses ,slots
+         (defmethod read-value ((,typevar (eql ',name)) ,streamvar &key
+                                                                       ,@(mapcan #'all-slots superclasses))
+             (let* ,(mapcar #'(lambda (x) (slot->binding x streamvar)) slots)
+               (let ((,child ,@(or (cdr (assoc :dispatch options))
+                                   (error "No :dispatch form found in ~s" whole))))
+                 (if (not (find-method #'read-object '(progn) (list (find-class ,child) t) nil))
+                     (read-value ,child
+                                 ,streamvar
+                                 ,@(slot-list->keyword-args (new-class-all-slots slots superclasses)))
+                     (let ((,objectvar
+                            (make-instance 
+                             ,child
+                             ,@(slot-list->keyword-args (new-class-all-slots slots superclasses)))))
+                       (read-object ,objectvar ,streamvar)
+                       ,objectvar))))))))
 
 (defun as-keyword (sym) (intern (string sym) :keyword))
 
@@ -163,6 +208,13 @@
   (destructuring-bind (name (type &rest args)) (normalize-slot-spec spec)
     `(setf ,name (read-value ',type ,stream ,@args))))
 
+(defun normalize-type (type)
+  (mklist type))
+
+(defun type->read-value (type stream)
+  (destructuring-bind (type-name &rest args) (normalize-type type)
+    `(read-value ',type-name ,stream ,@args)))
+
 (defun slot->write-value (spec stream)
   (destructuring-bind (name (type &rest args)) (normalize-slot-spec spec)
     `(write-value ',type ,stream ,name ,@args)))
@@ -174,6 +226,11 @@
 (defun slot->keyword-arg (spec)
   (let ((name (first spec)))
     `(,(as-keyword name) ,name)))
+
+(defun slot-list->keyword-args (slot-list)
+  (mapcan (lambda (slot)
+            (list (as-keyword slot) slot))
+          slot-list))
 
 ;;; Keeping track of inherited slots
 

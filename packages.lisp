@@ -12,7 +12,10 @@
            :define-binary-type
 	   :define-enumeration
            :read-value
+	   :type->read-value
            :write-value
+	   :generic-read-byte
+	   :generic-write-byte
            :*in-progress-objects*
            :parent-of-type
            :immediate-parent
