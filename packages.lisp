@@ -25,12 +25,22 @@
 (defpackage :com.gigamonkeys.binary-data.common-datatypes
   (:use :common-lisp :com.gigamonkeys.binary-data)
   (:export
+   :optional
    :u1
    :u2
    :u3 
    :u4 
+   :u1-o
+   :u2-o
+   :u3-o
+   :u4-o
+   :s1-o
+   :s2-o
+   :s3-o
+   :s4-o
    :generic-string 
-   :generic-terminated-string 
+   :generic-terminated-string
+   :swap-bytes
    :iso-8859-1-char 
    :iso-8859-1-string 
    :iso-8859-1-terminated-string 
@@ -40,4 +50,8 @@
    :ucs-2-char-type 
    :ucs-2-string 
    :ucs-2-terminated-string 
-   :unsigned-integer))
+   :unsigned-integer
+
+   ;; Conditions/restarts
+   :no-symbol-for-value-enum
+   :return-unknown-value))
