@@ -8,6 +8,8 @@
 
 (defconstant +null+ (code-char 0))
 
+(defun mklist (x) (if (listp x) x (list x)))
+
 (defgeneric read-value (type stream &key)
   (:documentation "Read a value of the given type from the stream."))
 
@@ -90,7 +92,7 @@
   (let ((restart (find-restart 'return-unknown-value)))
     (when restart (invoke-restart restart))))
 
-(defmacro define-enumeration (name (type) &rest mapping)
+(defmacro define-enumeration (name &rest mapping)
   (let ((mapping (normalize-mapping mapping)))
     (with-gensyms (in out value)
       `(define-binary-type ,name (type)
@@ -197,8 +199,6 @@
 
 (defun normalize-slot-spec (spec)
   (list (first spec) (mklist (second spec))))
-
-(defun mklist (x) (if (listp x) x (list x)))
 
 (defun slot->defclass-slot (spec)
   (let ((name (first spec)))
