@@ -29,7 +29,8 @@
    :u1
    :u2
    :u3 
-   :u4 
+   :u4
+   :*endianness*
    :u1-o
    :u2-o
    :u3-o

@@ -4,16 +4,19 @@
 
 (in-package :com.gigamonkeys.binary-data.common-datatypes)
 
-(define-binary-type unsigned-integer (bytes bits-per-byte (order :big-endian))
+(defvar *endianness* :big-endian
+  "*endianness* defines how variables are read or written.")
+
+(define-binary-type unsigned-integer (bytes bits-per-byte order)
   (:reader (in)
 	   (loop with value = 0
 	      for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte do
 		(setf (ldb (byte bits-per-byte low-bit) value) (generic-read-byte in))
-	      finally (if (eql order :big-endian)
+	      finally (if (eql (or order *endianness*) :big-endian)
 			  (return value)
 			  (return (swap-bytes value bytes)))))
   (:writer (out value)
-	   (let ((final-value (if (eql order :big-endian)
+	   (let ((final-value (if (eql (or order *endianness*) :big-endian)
 				  value
 				  (swap-bytes value bytes))))
 	     (loop for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte
@@ -29,16 +32,16 @@
 (define-binary-type u3-o (order) (unsigned-integer :bytes 3 :bits-per-byte 8 :order order))
 (define-binary-type u4-o (order) (unsigned-integer :bytes 4 :bits-per-byte 8 :order order))
 
-(define-binary-type signed-integer (bytes bits-per-byte (order :big-endian))
+(define-binary-type signed-integer (bytes bits-per-byte order)
   (:reader (in)
 	   (loop with value = 0
 	      for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte do
 		(setf (ldb (byte bits-per-byte low-bit) value) (generic-read-byte in))
-	      finally (if (eql order :big-endian)
+	      finally (if (eql (or order *endianness*) :big-endian)
 			  (return (coerce value '(signed-byte (* 8 bytes))))
 			  (return (coerce (swap-bytes value bytes) '(signed-byte (* 8 bytes)))))))
   (:writer (out value)
-	   (let ((final-value (coerce (if (eql order :big-endian)
+	   (let ((final-value (coerce (if (eql (or order *endianness*) :big-endian)
                                           value
                                           (swap-bytes value bytes))
                                       '(signed-byte (* 8 bytes)))))
