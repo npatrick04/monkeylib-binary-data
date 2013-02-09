@@ -26,11 +26,13 @@
 (define-binary-type u2 () (unsigned-integer :bytes 2 :bits-per-byte 8))
 (define-binary-type u3 () (unsigned-integer :bytes 3 :bits-per-byte 8))
 (define-binary-type u4 () (unsigned-integer :bytes 4 :bits-per-byte 8))
+(define-binary-type u8 () (unsigned-integer :bytes 8 :bits-per-byte 8))
 
 (define-binary-type u1-o (order) (unsigned-integer :bytes 1 :bits-per-byte 8 :order order))
 (define-binary-type u2-o (order) (unsigned-integer :bytes 2 :bits-per-byte 8 :order order))
 (define-binary-type u3-o (order) (unsigned-integer :bytes 3 :bits-per-byte 8 :order order))
 (define-binary-type u4-o (order) (unsigned-integer :bytes 4 :bits-per-byte 8 :order order))
+(define-binary-type u8-o (order) (unsigned-integer :bytes 8 :bits-per-byte 8 :order order))
 
 (define-binary-type signed-integer (bytes bits-per-byte order)
   (:reader (in)
@@ -52,6 +54,7 @@
 (define-binary-type s2-o (order) (signed-integer :bytes 2 :bits-per-byte 8 :order order))
 (define-binary-type s3-o (order) (signed-integer :bytes 3 :bits-per-byte 8 :order order))
 (define-binary-type s4-o (order) (signed-integer :bytes 4 :bits-per-byte 8 :order order))
+(define-binary-type s8-o (order) (signed-integer :bytes 8 :bits-per-byte 8 :order order))
 
 ;;; Strings
 

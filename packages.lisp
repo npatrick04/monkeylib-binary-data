@@ -24,21 +24,25 @@
 
 (defpackage :com.gigamonkeys.binary-data.common-datatypes
   (:use :common-lisp :com.gigamonkeys.binary-data)
+  (:nicknames :monkey-types)
   (:export
    :optional
    :u1
    :u2
    :u3 
    :u4
+   :u8
    :*endianness*
    :u1-o
    :u2-o
    :u3-o
    :u4-o
+   :u8-o
    :s1-o
    :s2-o
    :s3-o
    :s4-o
+   :s8-o
    :generic-string 
    :generic-terminated-string
    :swap-bytes

@@ -181,7 +181,8 @@
          ,name ,superclasses ,slots
          (defmethod read-value ((,typevar (eql ',name)) ,streamvar &key
                                                                        ,@(mapcan #'all-slots superclasses))
-             (let* ,(mapcar #'(lambda (x) (slot->binding x streamvar)) slots)
+             (let ,(mapcar #'first slots)
+               ,@(mapcar (lambda (x) (slot->read-value x streamvar)) slots)
                (let ((,child ,@(or (cdr (assoc :dispatch options))
                                    (error "No :dispatch form found in ~s" whole))))
                  (if (not (find-method #'read-object '(progn) (list (find-class ,child) t) nil))
@@ -198,15 +199,21 @@
 (defun as-keyword (sym) (intern (string sym) :keyword))
 
 (defun normalize-slot-spec (spec)
-  (list (first spec) (mklist (second spec))))
+  (list (first spec) (mklist (second spec))
+        
+        ;; Third item is a plist of the rest of the spec
+        (cddr spec)))
 
 (defun slot->defclass-slot (spec)
   (let ((name (first spec)))
     `(,name :initarg ,(as-keyword name) :accessor ,name)))
 
 (defun slot->read-value (spec stream)
-  (destructuring-bind (name (type &rest args)) (normalize-slot-spec spec)
-    `(setf ,name (read-value ',type ,stream ,@args))))
+  (destructuring-bind (name (type &rest args) hooks) (normalize-slot-spec spec)
+    `(progn
+       ,(getf hooks :pre-read)
+       (setf ,name (read-value ',type ,stream ,@args))
+       ,(getf hooks :post-read))))
 
 (defun normalize-type (type)
   (mklist type))
@@ -216,11 +223,14 @@
     `(read-value ',type-name ,stream ,@args)))
 
 (defun slot->write-value (spec stream)
-  (destructuring-bind (name (type &rest args)) (normalize-slot-spec spec)
-    `(write-value ',type ,stream ,name ,@args)))
+  (destructuring-bind (name (type &rest args) hooks) (normalize-slot-spec spec)
+    `(progn
+       ,(getf hooks :pre-write)
+       (write-value ',type ,stream ,name ,@args)
+       ,(getf hooks :post-write))))
 
 (defun slot->binding (spec stream)
-  (destructuring-bind (name (type &rest args)) (normalize-slot-spec spec)
+  (destructuring-bind (name (type &rest args) hooks) (normalize-slot-spec spec)
     `(,name (read-value ',type ,stream ,@args))))
 
 (defun slot->keyword-arg (spec)
