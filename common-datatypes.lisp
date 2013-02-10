@@ -40,13 +40,13 @@
 	      for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte do
 		(setf (ldb (byte bits-per-byte low-bit) value) (generic-read-byte in))
 	      finally (if (eql (or order *endianness*) :big-endian)
-			  (return (coerce value '(signed-byte (* 8 bytes))))
-			  (return (coerce (swap-bytes value bytes) '(signed-byte (* 8 bytes)))))))
+			  (return (coerce value (list 'signed-byte (* 8 bytes))))
+			  (return (coerce (swap-bytes value bytes) (list 'signed-byte (* 8 bytes)))))))
   (:writer (out value)
 	   (let ((final-value (coerce (if (eql (or order *endianness*) :big-endian)
                                           value
                                           (swap-bytes value bytes))
-                                      '(signed-byte (* 8 bytes)))))
+                                      (list signed-byte (* 8 bytes)))))
 	     (loop for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte
 		do (generic-write-byte (ldb (byte bits-per-byte low-bit) final-value) out)))))
 
