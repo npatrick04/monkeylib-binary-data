@@ -2,7 +2,7 @@
 ;; Copyright (c) 2005, Gigamonkeys Consulting All rights reserved.
 ;;
 
-(in-package :com.gigamonkeys.binary-data.common-datatypes)
+(in-package :binary-data.common-datatypes)
 
 (defvar *endianness* :big-endian
   "*endianness* defines how variables are read or written.")
@@ -36,12 +36,15 @@
 
 (define-binary-type signed-integer (bytes bits-per-byte order)
   (:reader (in)
-	   (loop with value = 0
-	      for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte do
-		(setf (ldb (byte bits-per-byte low-bit) value) (generic-read-byte in))
-	      finally (if (eql (or order *endianness*) :big-endian)
-			  (return (coerce value (list 'signed-byte (* 8 bytes))))
-			  (return (coerce (swap-bytes value bytes) (list 'signed-byte (* 8 bytes)))))))
+           (let ((value (read-value 'unsigned-integer in
+                                    :bytes bytes
+                                    :bits-per-byte bits-per-byte
+                                    :order order)))
+             (let* ((neg-value (ash 1 (1- bits-per-byte)))
+                    (neg (logtest neg-value value)))
+               (if neg
+                   (- (logxor neg-value value) neg-value)
+                   value))))
   (:writer (out value)
 	   (let ((final-value (coerce (if (eql (or order *endianness*) :big-endian)
                                           value
