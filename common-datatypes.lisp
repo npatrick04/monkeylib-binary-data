@@ -183,3 +183,34 @@
 	   (when if (read-value type in)))
   (:writer (out data)
 	   (when if (write-value type out data))))
+
+(define-binary-type single-float ()
+  (:reader (in)
+           (ieee-floats:decode-float32 (read-value 'u4 in)))
+  (:writer (out data)
+           (write-value 'u4 out (ieee-floats:encode-float32 data))))
+
+(define-binary-type double-float ()
+  (:reader (in)
+           (ieee-floats:decode-float64 (read-value 'u8 in)))
+  (:writer (out data)
+           (write-value 'u8 out (ieee-floats:encode-float64 data))))
+
+
+(defun rational-division-by-zero (c)
+  (declare (ignore c))
+  (let ((restart (find-restart 'return-zero)))
+    (when restart (invoke-restart restart))))
+
+(define-binary-type rational ((type 'u4))
+  (:reader (in)
+           (restart-case (/ (read-value type in)
+                            (read-value type in))
+             (rational-division-by-zero () 0)))
+  (:writer (out data)
+           (write-value type out (numerator data))
+           (write-value type out (denominator data))))
+
+(define-binary-type srational ((type 's4)) (rational :type type))
+
+

@@ -99,3 +99,9 @@
                              :type 'u1)))
     (is (eq 'two (read-value 'test-c-enum in
                              :type 'u1)))))
+(test rational-test
+  (is (= (/ #x1020304
+            #x5060708)
+         (read-value 'rational (flexi-streams:make-in-memory-input-stream
+                                #(1 2 3 4
+                                  5 6 7 8))))))
