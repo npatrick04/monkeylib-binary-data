@@ -70,3 +70,21 @@
         (flexi-streams:with-output-to-sequence (out :as-list t)
           (write-value 's2-o out (- #xff))
           (write-value 's2-o out (- #xff) :order :little-endian))))
+(test read-string
+  (is (string= (read-value 'iso-8859-1-string
+                           (flexi-streams:make-in-memory-input-stream
+                            "stream"
+                            :transformer #'char-code)
+                           :length 6)
+               "stream")))
+(test optional-test
+  (is (null (read-value 'optional 'not-used :type 'u1 :if nil)))
+  (format t "~%Skipping better \"optional\" test~%")
+  ;; (is (string= (read-value 'optional
+  ;;                          '(flexi-streams:make-in-memory-input-stream
+  ;;                            "stream"
+  ;;                            :transformer #'char-code)
+  ;;                          :type '(iso-8859-1-string :length 6)
+  ;;                          :if t)
+  ;;              "stream"))
+  )
