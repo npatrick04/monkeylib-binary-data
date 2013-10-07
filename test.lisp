@@ -88,3 +88,14 @@
   ;;                          :if t)
   ;;              "stream"))
   )
+
+(define-enumeration test-c-enum
+    zero one two)
+(test enum-test
+  (let ((in (flexi-streams:make-in-memory-input-stream #(0 1 2))))
+    (is (eq 'zero (read-value 'test-c-enum in
+                             :type 'u1)))
+    (is (eq 'one (read-value 'test-c-enum in
+                             :type 'u1)))
+    (is (eq 'two (read-value 'test-c-enum in
+                             :type 'u1)))))
