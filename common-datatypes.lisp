@@ -36,22 +36,24 @@
 
 (define-binary-type signed-integer (bytes bits-per-byte order)
   (:reader (in)
-           (let ((value (read-value 'unsigned-integer in
+           (let* ((value (read-value 'unsigned-integer in
                                     :bytes bytes
                                     :bits-per-byte bits-per-byte
-                                    :order order)))
-             (let* ((neg-value (ash 1 (1- bits-per-byte)))
-                    (neg (logtest neg-value value)))
-               (if neg
-                   (- (logxor neg-value value) neg-value)
-                   value))))
+                                    :order order))
+                  (neg-value (ash 1 (1- (* bytes bits-per-byte))))
+                  (neg (logtest neg-value value)))
+             (if neg
+                 (- (logxor neg-value value) neg-value)
+                 value)))
   (:writer (out value)
-	   (let ((final-value (coerce (if (eql (or order *endianness*) :big-endian)
-                                          value
-                                          (swap-bytes value bytes))
-                                      (list signed-byte (* 8 bytes)))))
-	     (loop for low-bit downfrom (* bits-per-byte (1- bytes)) to 0 by bits-per-byte
-		do (generic-write-byte (ldb (byte bits-per-byte low-bit) final-value) out)))))
+           (let ((final-value (if (minusp value)
+                                  (let ((neg-value (ash 1 (1- (* bytes bits-per-byte)))))
+                                    (- neg-value value))
+                                  value)))
+             (write-value 'unsigned-integer out final-value
+                          :bytes bytes
+                          :bits-per-byte bits-per-byte
+                          :order order))))
 
 (define-binary-type s1-o (order) (signed-integer :bytes 1 :bits-per-byte 8 :order order))
 (define-binary-type s2-o (order) (signed-integer :bytes 2 :bits-per-byte 8 :order order))

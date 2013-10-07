@@ -20,7 +20,7 @@
                     (range range)))))
     (&body)))
 
-(test read-uint
+(test read-write-uint
   (with-fixture n-stream ((+ 1 2 3 4 5))
     (is (= 1 (read-value 'u1 in)))
     (is (= #x203 (read-value 'u2 in)))
@@ -45,8 +45,8 @@
     (is (= #x60504 (read-value 'u3-o in :order :little-endian)))
     (is (= #xa090807 (read-value 'u4-o in :order :little-endian)))
     (is (= #xf0e0d0c0b (read-value 'unsigned-integer in :bytes 5 :bits-per-byte 8 :order :little-endian))))
-  (mapc (lambda (range-val seq-val)
-          (is (= range-val seq-val)))
+  (mapc (lambda (test-val seq-val)
+          (is (= test-val seq-val)))
         '(1 3 2 6 5 4 10 9 8 7 15 14 13 12 11)
         (flexi-streams:with-output-to-sequence
             (out :as-list t)
@@ -56,6 +56,17 @@
           (write-value 'u4-o out #x708090a :order :little-endian)
           (write-value 'unsigned-integer out #xb0c0d0e0f :bytes 5
                        :bits-per-byte 8 :order :little-endian))))
-(test read-int
-  (with-fixture n-stream ('(255 255))
-    (is (= -1 (read-value 's1-o in)))))
+(test read-write-int
+  (let ((in (flexi-streams:make-in-memory-input-stream 
+             #(#x7f #x81
+               #x7f #xff #x7f #xff))))
+    (is (= #x7f (read-value 's1-o in)))
+    (is (= (- 1 #x80) (read-value 's1-o in)))
+    (is (= #x7fff (read-value 's2-o in)))
+    (is (= (- #x7f7f #x8000) (read-value 's2-o in :order :little-endian))))
+  (mapc (lambda (test-val seq-val)
+          (is (= test-val seq-val)))
+        '(#x80 #xff #xff #x80)
+        (flexi-streams:with-output-to-sequence (out :as-list t)
+          (write-value 's2-o out (- #xff))
+          (write-value 's2-o out (- #xff) :order :little-endian))))
