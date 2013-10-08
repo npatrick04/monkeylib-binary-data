@@ -56,7 +56,12 @@
    :ucs-2-string 
    :ucs-2-terminated-string 
    :unsigned-integer
+   :optional
+   :single-float
+   :double-float
+   :rational
 
    ;; Conditions/restarts
    :no-symbol-for-value-enum
-   :return-unknown-value))
+   :return-unknown-value
+   :return-zero))

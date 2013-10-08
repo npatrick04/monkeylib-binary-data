@@ -197,7 +197,7 @@
            (write-value 'u8 out (ieee-floats:encode-float64 data))))
 
 
-(defun rational-division-by-zero (c)
+(defun return-zero (c)
   (declare (ignore c))
   (let ((restart (find-restart 'return-zero)))
     (when restart (invoke-restart restart))))
@@ -206,11 +206,8 @@
   (:reader (in)
            (restart-case (/ (read-value type in)
                             (read-value type in))
-             (rational-division-by-zero () 0)))
+             (return-zero () 0)))
   (:writer (out data)
            (write-value type out (numerator data))
            (write-value type out (denominator data))))
-
-(define-binary-type srational ((type 's4)) (rational :type type))
-
 
